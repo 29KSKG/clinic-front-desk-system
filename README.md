@@ -1,80 +1,85 @@
-# 🩺 CareSync — Front Desk Operations & Appointment System
+# CareSync — Front Desk Operations & Appointment System
 
-CareSync is an enterprise-grade front-desk appointment management system built with **FastAPI** (Backend) and **Streamlit** (Frontend). It features conflict-free appointment scheduling, late cancellation enforcement, microsecond search capabilities, pre-seeded admin credentials, and a polished glassmorphic UI.
+CareSync is a FastAPI and Streamlit clinic front-desk system. It prevents overlapping bookings for a doctor, supports safe cancellation fees, provides doctor and patient search, and includes pagination and sorting for appointment lists.
 
----
+## Features
 
-## 🌟 Key Features
+- Demo staff account: `admin` / `admin123`
+- Doctor directory and active-doctor filtering
+- Conflict-free half-open interval booking (`start < existing_end` and `end > existing_start`)
+- Past-booking validation
+- 24-hour free cancellation policy and configurable late fee
+- Appointment search by patient, doctor, and date
+- Pagination and whitelisted sorting
+- Streamlit front desk UI
+- SQLite by default, configurable through environment variables
 
-* **Pre-configured Admin Access:** Default credentials (`ADMIN` / `ADMIN`) available out of the box for instant evaluation.
-* **Conflict-Free Booking:** Algorithmic overlapping slot prevention using interval-intersection logic (`start < existing_end AND end > existing_start`).
-* **Fair Cancellation Policy:** Automatic detection of cancellation windows. Notice given $\ge 24\text{ hours}$ incurs **$\$0.00$** fee; late notice ($< 24\text{ hours}$) incurs a **$\$25.00$** penalty.
-* **Fast Search & Filters:** Microsecond search latency with substring matching, doctor-wise schedule filtering, multi-column sorting, and server-side pagination.
-* **Strict Form Validations:** Real-time checking for patient name presence and exact **10-digit mobile number** formatting before payload transmission.
-* **Glassmorphic UI:** Modern Streamlit frontend styled with Tailwind CSS, active tab highlights, hover states, and dynamic status badges.
+## Setup
 
----
+```bash
+python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\\Scripts\\activate
+pip install -r requirements.txt
+python seed.py
+```
 
-## 🛠️ Tech Stack
+## Run
 
-* **Frontend:** Streamlit, Tailwind CSS, FontAwesome Icons
-* **Backend:** FastAPI, Python 3.10+
-* **Database / Storage:** In-Memory / SQLite (Expandable to PostgreSQL)
-* **Data Validation:** Pydantic, Regular Expressions
+Start the API:
 
----
+```bash
+uvicorn main:app --reload --port 8000
+```
 
-## 🔑 Default Login Credentials
+In another terminal start the UI:
 
-To quickly test and evaluate the system, use the pre-configured admin account:
+```bash
+streamlit run app.py
+```
 
-* **Username:** `ADMIN`
-* **Password:** `ADMIN`
+- UI: http://localhost:8501
+- API docs: http://localhost:8000/docs
+- Health check: http://localhost:8000/api/health
 
-*(You can also register new staff accounts using the Login / Register tab in the top navigation bar).*
+Set `API_BASE_URL` when the API is hosted elsewhere. The value should include `/api`, for example `https://example.com/api`.
 
----
+## Configuration
 
-## 🚀 How to Start & Run the Project
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `sqlite:///./clinic.db` | SQLAlchemy database URL |
+| `SECRET_KEY` | `dev-secret-change-me` | Reserved application secret |
+| `FREE_CANCEL_HOURS` | `24` | Notice required for free cancellation |
+| `LATE_CANCEL_FEE` | `25` | Late cancellation charge |
+| `CURRENCY` | `USD` | Display currency |
+| `API_BASE_URL` | `http://127.0.0.1:8000/api` | Streamlit API URL |
 
-### Step 1: Install Dependencies
-Ensure Python 3.10+ is installed on your system. Run:
+## API endpoints
 
-`pip install fastapi uvicorn streamlit requests`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/doctors`
+- `POST /api/appointments`
+- `GET /api/appointments` and `GET /api/appointments/search`
+- `PUT /api/appointments/{id}/cancel`
+- `GET /api/health`
 
-### Step 2: Launch the FastAPI Backend
-Start the backend service on port 8000:
+## Tests
 
-`uvicorn main:app --reload --port 8000`
+```bash
+pytest -q
+```
 
-* **Backend API Base URL:** `http://127.0.0.1:8000`
-* **Interactive Swagger Documentation:** `http://127.0.0.1:8000/docs`
+## Project structure
 
-### Step 3: Launch the Streamlit Frontend
-Open a new terminal window or tab and run:
-
-`streamlit run app.py`
-
-* **Frontend Application Interface:** `http://localhost:8501`
-
----
-
-## 📁 Project File Structure
-
-* `main.py` — FastAPI Backend (REST Endpoints, Business Logic, ADMIN Auth)
-* `app.py` — Streamlit Frontend (Glassmorphic Navigation Bar & UI)
-* `README.md` — Setup, Credentials & Execution Instructions
-* `Reasoning.md` — Engineering Trade-offs, Architectural Choices & Specs
-
----
-
-## 🧪 API Endpoints Summary
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/auth/login` | Authenticate staff (Supports `ADMIN`/`ADMIN`) |
-| `POST` | `/api/auth/register` | Register new staff credentials |
-| `GET` | `/api/doctors` | Retrieve list of active doctors |
-| `POST` | `/api/appointments` | Book new conflict-checked appointment |
-| `GET` | `/api/appointments/search` | Search/Filter appointments with pagination |
-| `PUT` | `/api/appointments/{id}/cancel` | Cancel appointment & apply fee logic |
+```text
+main.py          FastAPI routes and validation
+app.py           Streamlit front desk UI
+config.py        Environment configuration
+database.py      SQLAlchemy engine and sessions
+models.py        Database models
+schemas.py       Pydantic API schemas
+security.py      Password hashing
+scheduling.py    Pure overlap, slot, and fee rules
+seed.py          Demo data loader
+```
